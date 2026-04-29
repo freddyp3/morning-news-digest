@@ -1,0 +1,407 @@
+{
+  "name": "Newsletter Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        80
+      ],
+      "id": "c5b77ac0-0ce2-4b09-b54d-f3a0e9e39688",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "resource": "block",
+        "operation": "getAll",
+        "blockId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        448,
+        -112
+      ],
+      "id": "b75c6b8d-843a-49e2-b9ee-e7d60c5c4e13",
+      "name": "Get many child blocks",
+      "credentials": {
+        "notionApi": {
+          "id": "fv7BdfGz7RJZGi7p",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over items and find the block that matches current day\nconst date = new Date().toLocaleDateString('en-US', {weekday: 'long'});\nconst result = [];\nlet boolFlag = false;\n\nfor (const item of $input.all()) {\n  if (item.json.type === \"heading_2\" && boolFlag) {\n    break;\n  }\n  if (boolFlag === true) {\n    result.push({json : {task : item.json.content}});\n  }\n  if (item.json.type === \"heading_2\" && item.json.content === date) {\n    // start adding to the array\n    boolFlag = true;\n  }\n}\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        -112
+      ],
+      "id": "f4ba4254-7dc7-427b-a9a3-d094c1aa7ddb",
+      "name": "Get TODOs by day"
+    },
+    {
+      "parameters": {
+        "jsCode": "// key: title, value: score\nconst result = new Map();\n\n// Initialize a map where all items have a score of 0\nfor (const item of $input.all()) {\n  result.set(item, 0);\n}\n\nconst high_keywords = [\n  \"ai\", \"artificial intelligence\", \"machine learning\", \"llm\", \"gpt\", \"claude\",\n  \"deep learning\", \"new tool\", \"launch\", \"release\", \"product\", \"research\",\n  \"paper\", \"breakthrough\", \"google\", \"apple\", \"microsoft\", \"meta\",\n  \"openai\", \"anthropic\", \"nvidia\", \"ai jobs\", \"hiring\", \"layoffs\",\n  \"job market\", \"intern\", \"new grad\", \"salary\", \"agentic\", \"harness\"\n];\n\nconst medium_keywords = [\n  \"open source\", \"open-source\", \"framework\", \"library\", \"python\", \"javascript\",\n  \"iphone\", \"macbook\", \"laptop\", \"phone\", \"pixel\", \"galaxy\",\n  \"regulation\", \"antitrust\", \"ai policy\", \"ban\", \"youtube algorithm\",\n  \"creator\", \"monetization\", \"platform\", \"breach\", \"hack\", \"data leak\"\n];\n\nconst exclude_keywords = [\n  \"startup funding\", \"series a\", \"raised\", \"venture capital\",\n  \"cryptocurrency\", \"crypto\", \"blockchain\", \"nft\", \"web3\"\n];\n\n// Filter -> Score\nfor (const item of $input.all()) {\n  const title = item.json.title;\n  \n  // hard excluding logic\n  for (const word of exclude_keywords) {\n    if (title.toLowerCase().includes(word)) {\n      result.delete(item);\n    }\n  }\n\n  // scoring logic HIGH\n  for (const word of high_keywords) {\n    if (title.toLowerCase().includes(word)) {\n      let score = result.get(item);\n      score += 3;\n      result.set(item, score);\n    }\n  }\n\n  // scoring logic MEDIUM\n  for (const word of medium_keywords) {\n    if (title.toLowerCase().includes(word)) {\n      let score = result.get(item);\n      score += 1;\n      result.set(item, score);\n    }\n  }\n\n}\n\nconst top2Titles = [...result.entries()]\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 2)\n  .map(([item]) => item);\n\nreturn top2Titles;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        80
+      ],
+      "id": "ef1e30f9-63e8-4d5d-b336-b7becf1feda9",
+      "name": "Filter -> Score -> Return top 2 news"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Loop over input items and add only news\nconst items = $input.all()[0].json.data.children\nconst result = []\n\nfor (const item of items) {\n  if (item.data.link_flair_text === \"News\") {\n    result.push(item)\n  }\n}\n\nreturn result"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        272
+      ],
+      "id": "b79d1e8a-15d0-43ac-91e3-be0d0fbabd45",
+      "name": "Filter for news only"
+    },
+    {
+      "parameters": {
+        "url": "https://www.reddit.com/r/chelseafc/hot.json",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        272
+      ],
+      "id": "cb71a00c-9f69-43ad-95d3-9dbe9515719b",
+      "name": "Pull Hot post from r/chelseafc"
+    },
+    {
+      "parameters": {
+        "url": "https://hnrss.org/frontpage",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        80
+      ],
+      "id": "b55de334-7a5d-4a6a-a6f9-8296eb3e0aa0",
+      "name": "RSS Read HackerNews"
+    },
+    {
+      "parameters": {
+        "operation": "search",
+        "text": "To Do (For n8n)",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2.2,
+      "position": [
+        224,
+        -112
+      ],
+      "id": "3876b322-0ad6-41a3-9220-9e0c4ae543c5",
+      "name": "Search for To Do (For n8n)",
+      "alwaysOutputData": false,
+      "notesInFlow": false,
+      "credentials": {
+        "notionApi": {
+          "id": "fv7BdfGz7RJZGi7p",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://www.nintendolife.com/",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        496
+      ],
+      "id": "73ca951c-dcb2-48d3-98b1-dbf2070b054c",
+      "name": "Nintendo News Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// take the data turn it into a string\nconst html = $input.all()[0].json.data;\n\nconst index = html.indexOf(\"<h2>Most Read</h2>\");\nconst end = html.indexOf(\"<h2>Guides</h2>\");\n\nconst content = html.substring(index, end)\n\n// regex to extract each article block\nconst matches = [...content.matchAll(\n  /<span class=\"prefix\">(\\d+)<\\/span>[\\s\\S]*?<a class=\"title accent-hover\" title=\"([^\"]+)\" href=\"([^\"]+)\">[\\s\\S]*?<span class=\"category accent\">([^<]+)<\\/span>/g\n)];\n\nconst results = matches.map(m => {\n  const rank = Number(m[1]);\n  const title = m[2]\n    .replace(/&amp;/g, \"&\")\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\");\n\nconst link = m[3].startsWith(\"http\")\n  ? m[3]\n  : `https://www.nintendolife.com/${m[3]}`;\n  \n  const category = m[4];\n  \n  return {\n    rank,\n    title,\n    category,\n    link\n  };\n});\n\nreturn results.map(item => ({json: item}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        496
+      ],
+      "id": "90a6e746-4601-4d48-905b-5a489eda089b",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "maxItems": 2
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        832,
+        496
+      ],
+      "id": "359a8f24-0927-40c7-8998-9ce17f567cb5",
+      "name": "Limit for first 2 only"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f339daa7-e99d-41ef-8613-89f48c93b3fc",
+              "leftValue": "={{ $json.title }}",
+              "rightValue": "hades",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "e79c4be5-5263-47f7-b81c-5394fbf83e15",
+              "leftValue": "={{ $json.category }}",
+              "rightValue": "News",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": true
+        }
+      },
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        624,
+        496
+      ],
+      "id": "b423326a-d8cf-4454-a6c4-0201f02a9270",
+      "name": "Filter for news only1"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "data.ups",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        656,
+        272
+      ],
+      "id": "a77bde4e-66d8-4dfd-ade0-7e61a704d734",
+      "name": "sort by upvote"
+    },
+    {
+      "parameters": {
+        "maxItems": 3
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        864,
+        272
+      ],
+      "id": "e83df799-44d0-44db-a17c-9a74d6e820ba",
+      "name": "Limit"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Search for To Do (For n8n)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "RSS Read HackerNews",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pull Hot post from r/chelseafc",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Nintendo News Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many child blocks": {
+      "main": [
+        [
+          {
+            "node": "Get TODOs by day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter -> Score -> Return top 2 news": {
+      "main": [
+        []
+      ]
+    },
+    "Pull Hot post from r/chelseafc": {
+      "main": [
+        [
+          {
+            "node": "Filter for news only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RSS Read HackerNews": {
+      "main": [
+        [
+          {
+            "node": "Filter -> Score -> Return top 2 news",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search for To Do (For n8n)": {
+      "main": [
+        [
+          {
+            "node": "Get many child blocks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nintendo News Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Filter for news only1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter for news only1": {
+      "main": [
+        [
+          {
+            "node": "Limit for first 2 only",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter for news only": {
+      "main": [
+        [
+          {
+            "node": "sort by upvote",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "sort by upvote": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "timeSavedMode": "fixed",
+    "timezone": "America/Vancouver",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "versionId": "54e2d1ee-d19c-4a70-a223-f31049579888",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b0f551df57de6458ea7eb15b82214f4e88b5df3ed12c47e79fbffe50ca5bb044"
+  },
+  "id": "Ia9r8qNqVm7se13E",
+  "tags": []
+}
