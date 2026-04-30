@@ -256,7 +256,7 @@
     },
     {
       "parameters": {
-        "url": "==https://api.twelvedata.com/quote?symbol={{ $json.ticker }}&apikey={{ $env.TWELVE_DATA_API_KEY }}",
+        "url": "=https://api.twelvedata.com/quote?symbol={{ $json.ticker }}&apikey={{ $env.TWELVE_DATA_API_KEY }}",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
@@ -282,7 +282,7 @@
     },
     {
       "parameters": {
-        "fileSelector": "/Users/fredrikpettit/.n8n-files/morning-digest/data/watchlist.csv",
+        "fileSelector": "/path/to/your/watchlist.csv",
         "options": {}
       },
       "type": "n8n-nodes-base.readWriteFile",
@@ -351,29 +351,164 @@
     },
     {
       "parameters": {
-        "maxItems": 100
-      },
-      "type": "n8n-nodes-base.limit",
-      "typeVersion": 1,
-      "position": [
-        1072,
-        656
-      ],
-      "id": "907eb952-4a58-4636-aac2-47d14a07b966",
-      "name": "Does nothing"
-    },
-    {
-      "parameters": {
-        "jsCode": "return [\n  {\n    json: {\n      hasKey: !!$env.TWELVE_DATA_API_KEY\n    }\n  }\n];"
+        "jsCode": "let stocks = \"<h2>Stock Watchlist</h2><hr>\";\nstocks += \"<table border='1' cellpadding='8' cellspacing='0' style='border-collapse:collapse;width:100%;'>\";\nstocks += \"<tr><th>Symbol</th><th>Name</th><th>Price</th><th>% Change</th></tr>\";\n\nfor (const item of $input.all()) {\n  const stock = item.json;\n\n  const symbol = stock.symbol;\n  const name = stock.name;\n  const close = Number(stock.close).toFixed(2);\n\n  const percent = Number(stock.percent_change);\n  const formatted = (percent > 0 ? \"+\" : \"\") + percent.toFixed(2);\n  const color = percent >= 0 ? \"green\" : \"red\";\n\n  stocks += \"<tr>\";\n  stocks += \"<td><strong>\" + symbol + \"</strong></td>\";\n  stocks += \"<td>\" + name + \"</td>\";\n  stocks += \"<td>$\" + close + \"</td>\";\n  stocks += \"<td style='color:\" + color + \";font-weight:bold;'>\" + formatted + \"%</td>\";\n  stocks += \"</tr>\";\n}\n\nstocks += \"</table>\";\n\nreturn { stocks };"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        224,
-        1120
+        1280,
+        688
       ],
-      "id": "efb36b86-f727-4cfe-add7-a3cbfcd0a83b",
-      "name": "Code in JavaScript"
+      "id": "56862d15-3c9a-4aad-bfe2-0c324a908437",
+      "name": "Convert into HTML (Stocks)"
+    },
+    {
+      "parameters": {
+        "jsCode": "let nintendo = \"<h2>Nintendo News:</h2><hr><ul>\"\n\nfor (const item of $input.all()) {\n  const title = item.json.title;\n  const link = item.json.link;\n  \n  nintendo += \"<li>\";\n  nintendo += \"<strong>\" + title + \"</strong><br>\";\n  nintendo += '<a href=\"' + link + '\">Read more</a>';\n  nintendo += \"</li><br>\";\n}\n\nnintendo += \"</ul>\";\n\nreturn {nintendo};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        496
+      ],
+      "id": "8d928f51-66bc-4955-831a-23b01cb5f5a4",
+      "name": "Convert into HTML (Nintendo)"
+    },
+    {
+      "parameters": {
+        "jsCode": "let chelsea = \"<h2>Chelsea News:</h2><hr>\"\n\nfor (const item of $input.all()) {\n  const imageUrl = item.json.data.url_overridden_by_dest || item.json.data.url;\n  const link = \"https://www.reddit.com\" + item.json.data.permalink;\n\n  chelsea += '<div style=\"margin-bottom:20px;\">';\n  chelsea += '<a href=\"' + link + '\">';\n  chelsea += '<img src=\"' + imageUrl + '\" style=\"max-width:500px;width:100%;border-radius:8px;\">';\n  chelsea += '</a>';\n  chelsea += '</div>';\n}\n\nreturn { chelsea };"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1072,
+        272
+      ],
+      "id": "0b61b61a-b002-464b-adaf-70863537b1a6",
+      "name": "Convert into HTML (Chelsea)"
+    },
+    {
+      "parameters": {
+        "jsCode": "let hackernews = \"<h2>HackerNews:</h2><hr><ul>\"\n\nfor (const item of $input.all()) {\n  const title = item.json.title;\n  const link = item.json.link;\n  \n  hackernews += \"<li>\";\n  hackernews += \"<strong>\" + title + \"</strong><br>\";\n  hackernews += '<a href=\"' + link + '\">Read more</a>';\n  hackernews += \"</li><br>\";\n}\n\nhackernews += \"</ul>\";\n\nreturn {hackernews};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        80
+      ],
+      "id": "b89d8c82-5fce-4de0-b615-5ebc520e3d4f",
+      "name": "Convert into HTML (HackerNews)"
+    },
+    {
+      "parameters": {
+        "jsCode": "let todos = '<h2>ToDos for the day:</h2><hr><ul>';\n\nfor (const item of $input.all()) {\n  todos += '<li>' + item.json.task + '</li>';\n}\n\ntodos += '</ul>';"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        -112
+      ],
+      "id": "ee9eb301-b9d0-46a1-9a93-379fc14737e1",
+      "name": "Convert into HTML (ToDos)"
+    },
+    {
+      "parameters": {
+        "numberInputs": 6
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1616,
+        224
+      ],
+      "id": "39ffba74-007a-4fd9-9a64-8cdab15a6013",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Header/Title of the whole thing\nlet intro = '<h1>Morning Digest</h1><h2>' + \n  new Date().toLocaleDateString('en-US', {\n      weekday: 'long',\n      year: 'numeric',\n      month: 'long',\n      day: 'numeric'\n      }) + '</h2>';\n\nreturn {intro};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        -336
+      ],
+      "id": "27c30f97-f0d7-4b9f-907f-e9cc855bc242",
+      "name": "Just add the title"
+    },
+    {
+      "parameters": {
+        "html": "<style>\n  body {\n    font-family: Arial, sans-serif;\n    line-height: 1.5;\n  }\n\n  h1 { margin-bottom: 0; }\n\n  h2 {\n    margin-top: 24px;\n    color: #333;\n  }\n\n  hr {\n    border: none;\n    border-top: 1px solid #ddd;\n    margin: 10px 0;\n  }\n\n  table {\n    border-collapse: collapse;\n    width: 100%;\n    margin-top: 10px;\n  }\n\n  th, td {\n    border: 1px solid #ddd;\n    padding: 8px;\n    text-align: left;\n  }\n\n  th {\n    background-color: #f5f5f5;\n  }\n</style>\n\n<div>\n  {{ $json.result.intro }}\n\n  {{ $json.result.todos }}\n\n  {{ $json.result.hackernews }}\n\n  {{ $json.result.chelsea }}\n\n  {{ $json.result.nintendo }}\n\n  {{ $json.result.stocks }}\n</div>"
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        2064,
+        288
+      ],
+      "id": "55b0016b-7a8d-44f0-b78e-0af033f6bb15",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "jsCode": "const result = {};\n\nfor (const item of $input.all()) {\n  Object.assign(result, item.json);\n}\n\nreturn {result};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        288
+      ],
+      "id": "99465300-def0-4fc1-84f2-01219f135581",
+      "name": "Code in JavaScript because merge block is stupid"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "percent_change"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        688
+      ],
+      "id": "261221a2-1051-4c54-99ea-19c9ef14e0d3",
+      "name": "Sort"
+    },
+    {
+      "parameters": {
+        "fromEmail": "puturemailhere@gmail.com",
+        "toEmail": "puturemailhere@gmail.com",
+        "subject": "Morning Digest!",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2256,
+        288
+      ],
+      "id": "09fa6bc1-15b1-49df-8043-abbf80384fd3",
+      "name": "Send an Email",
+      "webhookId": "722d1055-92ad-4e67-9989-48812bb158bd",
+      "credentials": {
+        "smtp": {
+          "id": "wNuRYGn6JvhJAPq5",
+          "name": "SMTP account"
+        }
+      }
     }
   ],
   "pinData": {},
@@ -405,6 +540,11 @@
             "node": "Read/Write Files from Disk",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "Just add the title",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -422,7 +562,13 @@
     },
     "Filter -> Score -> Return top 2 news": {
       "main": [
-        []
+        [
+          {
+            "node": "Convert into HTML (HackerNews)",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Pull Hot post from r/chelseafc": {
@@ -539,7 +685,7 @@
       "main": [
         [
           {
-            "node": "Does nothing",
+            "node": "Sort",
             "type": "main",
             "index": 0
           }
@@ -585,6 +731,149 @@
           }
         ]
       ]
+    },
+    "Get TODOs by day": {
+      "main": [
+        [
+          {
+            "node": "Convert into HTML (ToDos)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit for top 3": {
+      "main": [
+        [
+          {
+            "node": "Convert into HTML (Chelsea)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit for top 2": {
+      "main": [
+        [
+          {
+            "node": "Convert into HTML (Nintendo)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert into HTML (Stocks)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 5
+          }
+        ]
+      ]
+    },
+    "Convert into HTML (Nintendo)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "Convert into HTML (Chelsea)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Convert into HTML (HackerNews)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Convert into HTML (ToDos)": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript because merge block is stupid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Just add the title": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript because merge block is stupid": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "Convert into HTML (Stocks)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -596,7 +885,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "548b1b1e-75d7-4c49-93f0-1d3d927ad66a",
+  "versionId": "a669a9c9-d751-4794-bb6a-cf27692f5073",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "b0f551df57de6458ea7eb15b82214f4e88b5df3ed12c47e79fbffe50ca5bb044"
