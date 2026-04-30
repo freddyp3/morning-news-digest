@@ -17,6 +17,7 @@ If you want to try it out you have to add your own credentials.
 2. Start n8n with env loaded:
 
 ```bash
+export N8N_BLOCK_ENV_ACCESS_IN_NODE=false
 source .env
 n8n
 ```
