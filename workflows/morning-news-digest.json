@@ -1,5 +1,5 @@
 {
-  "name": "Newsletter Automation",
+  "name": "morning-news-digest",
   "nodes": [
     {
       "parameters": {
@@ -14,8 +14,8 @@
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.3,
       "position": [
-        0,
-        80
+        -272,
+        272
       ],
       "id": "c5b77ac0-0ce2-4b09-b54d-f3a0e9e39688",
       "name": "Schedule Trigger"
@@ -152,32 +152,6 @@
     },
     {
       "parameters": {
-        "jsCode": "// take the data turn it into a string\nconst html = $input.all()[0].json.data;\n\nconst index = html.indexOf(\"<h2>Most Read</h2>\");\nconst end = html.indexOf(\"<h2>Guides</h2>\");\n\nconst content = html.substring(index, end)\n\n// regex to extract each article block\nconst matches = [...content.matchAll(\n  /<span class=\"prefix\">(\\d+)<\\/span>[\\s\\S]*?<a class=\"title accent-hover\" title=\"([^\"]+)\" href=\"([^\"]+)\">[\\s\\S]*?<span class=\"category accent\">([^<]+)<\\/span>/g\n)];\n\nconst results = matches.map(m => {\n  const rank = Number(m[1]);\n  const title = m[2]\n    .replace(/&amp;/g, \"&\")\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\");\n\nconst link = m[3].startsWith(\"http\")\n  ? m[3]\n  : `https://www.nintendolife.com/${m[3]}`;\n  \n  const category = m[4];\n  \n  return {\n    rank,\n    title,\n    category,\n    link\n  };\n});\n\nreturn results.map(item => ({json: item}));"
-      },
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        416,
-        496
-      ],
-      "id": "90a6e746-4601-4d48-905b-5a489eda089b",
-      "name": "Code in JavaScript"
-    },
-    {
-      "parameters": {
-        "maxItems": 2
-      },
-      "type": "n8n-nodes-base.limit",
-      "typeVersion": 1,
-      "position": [
-        832,
-        496
-      ],
-      "id": "359a8f24-0927-40c7-8998-9ce17f567cb5",
-      "name": "Limit for first 2 only"
-    },
-    {
-      "parameters": {
         "conditions": {
           "options": {
             "caseSensitive": false,
@@ -252,7 +226,154 @@
         272
       ],
       "id": "e83df799-44d0-44db-a17c-9a74d6e820ba",
-      "name": "Limit"
+      "name": "Limit for top 3"
+    },
+    {
+      "parameters": {
+        "maxItems": 2
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        832,
+        496
+      ],
+      "id": "359a8f24-0927-40c7-8998-9ce17f567cb5",
+      "name": "Limit for top 2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// take the data turn it into a string\nconst html = $input.all()[0].json.data;\n\nconst index = html.indexOf(\"<h2>Most Read</h2>\");\nconst end = html.indexOf(\"<h2>Guides</h2>\");\n\nconst content = html.substring(index, end)\n\n// regex to extract each article block\nconst matches = [...content.matchAll(\n  /<span class=\"prefix\">(\\d+)<\\/span>[\\s\\S]*?<a class=\"title accent-hover\" title=\"([^\"]+)\" href=\"([^\"]+)\">[\\s\\S]*?<span class=\"category accent\">([^<]+)<\\/span>/g\n)];\n\nconst results = matches.map(m => {\n  const rank = Number(m[1]);\n  const title = m[2]\n    .replace(/&amp;/g, \"&\")\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\");\n\nconst link = m[3].startsWith(\"http\")\n  ? m[3]\n  : `https://www.nintendolife.com/${m[3]}`;\n  \n  const category = m[4];\n  \n  return {\n    rank,\n    title,\n    category,\n    link\n  };\n});\n\nreturn results.map(item => ({json: item}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        496
+      ],
+      "id": "90a6e746-4601-4d48-905b-5a489eda089b",
+      "name": "Extract Most read articles from html"
+    },
+    {
+      "parameters": {
+        "url": "==https://api.twelvedata.com/quote?symbol={{ $json.ticker }}&apikey={{ $env.TWELVE_DATA_API_KEY }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "cfb817dc-6771-4220-aa18-d7536581844d",
+      "name": "Fetch Live Stock Price",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1024,
+        976
+      ],
+      "typeVersion": 4.1
+    },
+    {
+      "parameters": {
+        "fileSelector": "/Users/fredrikpettit/.n8n-files/morning-digest/data/watchlist.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        208,
+        688
+      ],
+      "id": "ee7be674-0a05-493f-85e7-5058937833b3",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        416,
+        688
+      ],
+      "id": "4d22a131-7b6f-4df0-b376-20cdf2a93bd0",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "batchSize": 8,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        720,
+        704
+      ],
+      "id": "622b3cff-d45f-4def-8ec0-e46a8664165e",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "maxItems": 8
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        880,
+        800
+      ],
+      "id": "5ffbfae9-d90d-42a9-8339-07c3ea0715a6",
+      "name": "Limit 8 tickers"
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "minutes"
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        576,
+        960
+      ],
+      "id": "bcf66239-a294-40ee-83b2-633643f1826b",
+      "name": "Wait a minute",
+      "webhookId": "3ad18cf3-2d11-466c-8073-49aa1df1a807"
+    },
+    {
+      "parameters": {
+        "maxItems": 100
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        1072,
+        656
+      ],
+      "id": "907eb952-4a58-4636-aac2-47d14a07b966",
+      "name": "Does nothing"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      hasKey: !!$env.TWELVE_DATA_API_KEY\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        1120
+      ],
+      "id": "efb36b86-f727-4cfe-add7-a3cbfcd0a83b",
+      "name": "Code in JavaScript"
     }
   ],
   "pinData": {},
@@ -277,6 +398,11 @@
           },
           {
             "node": "Nintendo News Request",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Read/Write Files from Disk",
             "type": "main",
             "index": 0
           }
@@ -336,18 +462,7 @@
       "main": [
         [
           {
-            "node": "Code in JavaScript",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Code in JavaScript": {
-      "main": [
-        [
-          {
-            "node": "Filter for news only1",
+            "node": "Extract Most read articles from html",
             "type": "main",
             "index": 0
           }
@@ -358,7 +473,7 @@
       "main": [
         [
           {
-            "node": "Limit for first 2 only",
+            "node": "Limit for top 2",
             "type": "main",
             "index": 0
           }
@@ -380,7 +495,91 @@
       "main": [
         [
           {
-            "node": "Limit",
+            "node": "Limit for top 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Most read articles from html": {
+      "main": [
+        [
+          {
+            "node": "Filter for news only1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Does nothing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Limit 8 tickers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit 8 tickers": {
+      "main": [
+        [
+          {
+            "node": "Fetch Live Stock Price",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Live Stock Price": {
+      "main": [
+        [
+          {
+            "node": "Wait a minute",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait a minute": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
             "type": "main",
             "index": 0
           }
@@ -397,7 +596,7 @@
     "callerPolicy": "workflowsFromSameOwner",
     "availableInMCP": false
   },
-  "versionId": "54e2d1ee-d19c-4a70-a223-f31049579888",
+  "versionId": "548b1b1e-75d7-4c49-93f0-1d3d927ad66a",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "b0f551df57de6458ea7eb15b82214f4e88b5df3ed12c47e79fbffe50ca5bb044"
